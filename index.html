@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LeadFlow Pro Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 300;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.3);
+            padding: 12px 24px;
+            border-radius: 30px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .refresh-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            animation: fadeInUp 1s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 1.2s ease-out;
+        }
+
+        .chart-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .loading::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        .footer {
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+            margin-top: 40px;
+            animation: fadeIn 2s ease-out;
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stat-card {
+                padding: 20px;
+            }
+            
+            .stat-number {
+                font-size: 2.2rem;
+            }
+        }
+
+        .trend-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 0.8rem;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: #e8f5e8;
+            color: #2d5a2d;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 LeadFlow Pro</h1>
+            <p>Dashboard en tiempo real - TechStart Solutions</p>
+        </div>
+
+        <button class="refresh-btn" onclick="loadData()">🔄 Actualizar</button>
+
+        <div id="loading" class="loading">Cargando datos del sistema...</div>
+
+        <div id="dashboard" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-number" id="total-leads">-</span>
+                    <div class="stat-label">Total Leads</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="today-leads">-</span>
+                    <div class="stat-label">Leads Hoy</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="week-leads">-</span>
+                    <div class="stat-label">Esta Semana</div>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="month-leads">-</span>
+                    <div class="stat-label">Este Mes</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">📊 Leads por Canal</h3>
+                    <div class="chart-container">
+                        <canvas id="channelChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">🎯 Distribución por Calidad</h3>
+                    <div class="chart-container">
+                        <canvas id="qualityChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Última actualización: <span id="last-update">-</span></p>
+            <p>Sistema automatizado LeadFlow Pro</p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://julen-miranda-n8n.9zmtzj.easypanel.host/webhook/dashboard';
+        let channelChart, qualityChart;
+
+        async function loadData() {
+            const loading = document.getElementById('loading');
+            const dashboard = document.getElementById('dashboard');
+            
+            loading.style.display = 'block';
+            dashboard.style.display = 'none';
+
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                
+                // Actualizar estadísticas
+                document.getElementById('total-leads').textContent = data.total;
+                document.getElementById('today-leads').textContent = data.today;
+                document.getElementById('week-leads').textContent = data.thisWeek;
+                document.getElementById('month-leads').textContent = data.thisMonth;
+                
+                // Actualizar gráficos
+                updateCharts(data);
+                
+                // Actualizar timestamp
+                document.getElementById('last-update').textContent = new Date().toLocaleString('es-ES');
+                
+                loading.style.display = 'none';
+                dashboard.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                loading.innerHTML = '❌ Error al cargar datos. <button onclick="loadData()" style="margin-left: 10px; padding: 5px 10px; border: 1px solid white; background: transparent; color: white; border-radius: 5px; cursor: pointer;">Reintentar</button>';
+            }
+        }
+
+        function updateCharts(data) {
+            // Gráfico de canales
+            const channelData = {
+                labels: ['Web', 'LinkedIn', 'Referencia', 'Otros'],
+                datasets: [{
+                    data: [
+                        data.porCanal.web,
+                        data.porCanal.linkedin,
+                        data.porCanal.referencia,
+                        data.porCanal.otros
+                    ],
+                    backgroundColor: [
+                        '#667eea',
+                        '#764ba2',
+                        '#f093fb',
+                        '#f5f7fa'
+                    ],
+                    borderWidth: 0,
+                    borderRadius: 8
+                }]
+            };
+
+            // Gráfico de calidad
+            const qualityData = {
+                labels: ['Alto', 'Medio', 'Bajo', 'Sin Categoría'],
+                datasets: [{
+                    data: [
+                        data.porCategoria.ALTO,
+                        data.porCategoria.MEDIO,
+                        data.porCategoria.BAJO,
+                        data.porCategoria.sinCategoria
+                    ],
+                    backgroundColor: [
+                        '#ff6b6b',
+                        '#feca57',
+                        '#48dbfb',
+                        '#ddd'
+                    ],
+                    borderWidth: 0
+                }]
+            };
+
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            padding: 20,
+                            font: {
+                                size: 12
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    animateScale: true,
+                    animateRotate: true,
+                    duration: 1000
+                }
+            };
+
+            // Destruir gráficos existentes si existen
+            if (channelChart) channelChart.destroy();
+            if (qualityChart) qualityChart.destroy();
+
+            // Crear nuevos gráficos
+            const channelCtx = document.getElementById('channelChart').getContext('2d');
+            channelChart = new Chart(channelCtx, {
+                type: 'doughnut',
+                data: channelData,
+                options: chartOptions
+            });
+
+            const qualityCtx = document.getElementById('qualityChart').getContext('2d');
+            qualityChart = new Chart(qualityCtx, {
+                type: 'doughnut',
+                data: qualityData,
+                options: chartOptions
+            });
+        }
+
+        // Cargar datos al inicio
+        loadData();
+
+        // Auto-refresh cada 30 segundos
+        setInterval(loadData, 30000);
+    </script>
+</body>
+</html>
